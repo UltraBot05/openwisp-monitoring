@@ -679,6 +679,32 @@ class TestDashboardTimeseriesView(
             response = self.client.get(path, {"time": "3w"})
             self.assertEqual(response.status_code, 400)
 
+    def test_legacy_timezone_fallback(self):
+        """
+        Pass a legacy timezone, without crashing the API
+        with a 500 error when OS zoneinfo is missing. fix for monitoring#728
+        """
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        path = reverse("monitoring_general:api_dashboard_timeseries")
+
+        # Test with a legacy timezone that isn't in modern tzdata
+        with self.subTest("Test legacy timezone normalization (Asia/Calcutta)"):
+            response = self.client.get(
+                path, {"timezone": "Asia/Calcutta", "time": "7d"}
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIsInstance(response.data.get("charts"), list)
+
+        # Test with an invalid timezone to see if fallback works.
+        with self.subTest("Test invalid timezone fallback (Antarctica/Banana)"):
+            response = self.client.get(
+                path, {"timezone": "Antarctica/Banana", "time": "7d"}
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("charts", response.data)
+            self.assertGreater(len(response.data["charts"]), 0)
+
     def test_organizations_list(self):
         path = reverse("monitoring_general:api_dashboard_timeseries")
         Organization.objects.all().delete()
