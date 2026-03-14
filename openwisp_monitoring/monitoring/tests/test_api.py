@@ -1,12 +1,13 @@
 import uuid
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from swapper import load_model
 
 from openwisp_controller.config.tests.utils import CreateConfigTemplateMixin
 from openwisp_controller.geo.tests.utils import TestGeoMixin
+from openwisp_monitoring.utils import normalize_timezone
 
 from ..configuration import DEFAULT_DASHBOARD_TRAFFIC_CHART
 from . import TestMonitoringMixin
@@ -702,7 +703,18 @@ class TestDashboardTimeseriesView(
                 path, {"timezone": "Antarctica/Banana", "time": "7d"}
             )
             self.assertEqual(response.status_code, 200)
-            self.assertIn("charts", response.data)
+            self.assertIsInstance(response.data.get("charts"), list)
+
+    def test_timezone_fallback_cache_not_polluted(self):
+        """Ensure invalid timezones don't permanently cache the fallback TIME_ZONE."""
+        with override_settings(TIME_ZONE="UTC"):
+            self.assertEqual(normalize_timezone("Invalid/Zone"), "UTC")
+            self.assertEqual(normalize_timezone(None), "UTC")
+
+        with override_settings(TIME_ZONE="Europe/Rome"):
+            # If the cache is broken, these would wrongly return "UTC"
+            self.assertEqual(normalize_timezone("Invalid/Zone"), "Europe/Rome")
+            self.assertEqual(normalize_timezone(None), "Europe/Rome")
 
     def test_organizations_list(self):
         path = reverse("monitoring_general:api_dashboard_timeseries")
