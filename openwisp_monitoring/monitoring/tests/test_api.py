@@ -7,7 +7,7 @@ from swapper import load_model
 
 from openwisp_controller.config.tests.utils import CreateConfigTemplateMixin
 from openwisp_controller.geo.tests.utils import TestGeoMixin
-from openwisp_monitoring.utils import normalize_timezone
+from openwisp_monitoring.legacy_tz_utils import normalize_timezone
 
 from ..configuration import DEFAULT_DASHBOARD_TRAFFIC_CHART
 from . import TestMonitoringMixin
