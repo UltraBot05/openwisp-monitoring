@@ -30,7 +30,7 @@ def normalize_timezone(tz_name):
     Invalid or made-up timezones are returned unchanged so the existing
     pytz-based validation in the API views can still raise a 400 response.
     """
-    fallback = getattr(settings, "TIME_ZONE", "UTC")
+    fallback = getattr(settings, "TIME_ZONE", None) or "UTC"
     if not tz_name:
         return fallback
 
