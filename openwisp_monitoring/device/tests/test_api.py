@@ -640,7 +640,7 @@ class TestDeviceApi(AuthenticationMixin, TestGeoMixin, DeviceMonitoringTestCase)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["charts"], [])
 
-    def test_get_device_metrics_bad_timezone_fallback(self):
+    def test_get_device_metrics_400_bad_timezone(self):
         dd = self.create_test_data(no_resources=True)
         d = self.device_model.objects.get(pk=dd.pk)
         wrong_timezone_values = (
@@ -649,11 +649,19 @@ class TestDeviceApi(AuthenticationMixin, TestGeoMixin, DeviceMonitoringTestCase)
             "Europe/Cazzuoli",
         )
         for tz_value in wrong_timezone_values:
-            with self.subTest(timezone=tz_value):
-                url = "{0}&timezone={1}".format(self._url(d.pk, d.key), tz_value)
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, 200)
-                self.assertIn("charts", response.data)
+            url = "{0}&timezone={1}".format(self._url(d.pk, d.key), tz_value)
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 400)
+            self.assertIn("Unkown Time Zone", r.data)
+
+    def test_get_device_metrics_legacy_timezone_fallback(self):
+        dd = self.create_test_data(no_resources=True)
+        d = self.device_model.objects.get(pk=dd.pk)
+        url = "{0}&timezone={1}".format(self._url(d.pk, d.key), "Asia/Calcutta")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("charts", response.data)
+        self.assertIsInstance(response.data["charts"], list)
 
     def test_device_metrics_received_signal(self):
         d = self._create_device(organization=self._create_org())

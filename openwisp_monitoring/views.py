@@ -13,8 +13,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from swapper import load_model
 
+from .legacy_tz_utils import normalize_timezone
 from .monitoring.exceptions import InvalidChartConfigException
-from .utils import normalize_timezone
 
 logger = logging.getLogger(__name__)
 

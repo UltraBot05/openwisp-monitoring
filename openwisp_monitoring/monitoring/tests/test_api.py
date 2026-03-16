@@ -689,31 +689,28 @@ class TestDashboardTimeseriesView(
         self.client.force_login(admin)
         path = reverse("monitoring_general:api_dashboard_timeseries")
 
-        # Test with a legacy timezone that isn't in modern tzdata
-        with self.subTest("Test legacy timezone normalization (Asia/Calcutta)"):
+        with self.subTest(
+            "Test legacy timezone that isn't in modern tzdata (Asia/Calcutta)"
+        ):
             response = self.client.get(
                 path, {"timezone": "Asia/Calcutta", "time": "7d"}
             )
             self.assertEqual(response.status_code, 200)
             self.assertIsInstance(response.data.get("charts"), list)
 
-        # Test with an invalid timezone to see if fallback works.
-        with self.subTest("Test invalid timezone fallback (Antarctica/Banana)"):
+        with self.subTest("Test invalid timezone still raises validation error"):
             response = self.client.get(
                 path, {"timezone": "Antarctica/Banana", "time": "7d"}
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsInstance(response.data.get("charts"), list)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("Unkown Time Zone", response.data)
 
     def test_timezone_fallback_cache_not_polluted(self):
-        """Ensure invalid timezones don't permanently cache the fallback TIME_ZONE."""
+        """Ensure the fallback TIME_ZONE is read dynamically for empty values."""
         with override_settings(TIME_ZONE="UTC"):
-            self.assertEqual(normalize_timezone("Invalid/Zone"), "UTC")
             self.assertEqual(normalize_timezone(None), "UTC")
 
         with override_settings(TIME_ZONE="Europe/Rome"):
-            # If the cache is broken, these would wrongly return "UTC"
-            self.assertEqual(normalize_timezone("Invalid/Zone"), "Europe/Rome")
             self.assertEqual(normalize_timezone(None), "Europe/Rome")
 
     def test_organizations_list(self):
